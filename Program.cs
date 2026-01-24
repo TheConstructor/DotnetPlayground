@@ -1,4 +1,6 @@
-﻿namespace DotnetPlayground;
+﻿using System;
+
+namespace DotnetPlayground;
 
 class Program
 {

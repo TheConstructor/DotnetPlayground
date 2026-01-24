@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace DotnetPlayground;
@@ -32,7 +33,7 @@ public class ConcurrentSet<T>(ImmutableHashSet<T> items) : ICollection<T>, IRead
 
     public void CopyTo(T[] array, int arrayIndex)
     {
-        ((ICollection<T>) _items).CopyTo(array, arrayIndex);
+        ((ICollection) _items).CopyTo(array, arrayIndex);
     }
 
     public bool Remove(T item)
