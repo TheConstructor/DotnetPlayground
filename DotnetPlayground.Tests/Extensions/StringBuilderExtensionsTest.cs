@@ -1,7 +1,8 @@
 using System.Text;
+using DotnetPlayground.Extensions;
 using Xunit;
 
-namespace DotnetPlayground.Tests;
+namespace DotnetPlayground.Tests.Extensions;
 
 public class StringBuilderExtensionsTest
 {

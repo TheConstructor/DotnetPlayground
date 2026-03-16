@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace DotnetPlayground;
+namespace DotnetPlayground.Extensions;
 
 public static class Extensions
 {

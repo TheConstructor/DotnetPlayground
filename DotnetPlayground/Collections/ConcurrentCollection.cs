@@ -2,8 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using DotnetPlayground.Extensions;
 
-namespace DotnetPlayground;
+namespace DotnetPlayground.Collections;
 
 public class ConcurrentCollection<T>(ImmutableArray<T> items) : ICollection<T>, ICollection, IReadOnlyCollection<T>
 {

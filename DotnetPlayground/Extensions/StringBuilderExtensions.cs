@@ -2,7 +2,7 @@
 using System.Buffers;
 using System.Text;
 
-namespace DotnetPlayground;
+namespace DotnetPlayground.Extensions;
 
 public static class StringBuilderExtensions
 {
