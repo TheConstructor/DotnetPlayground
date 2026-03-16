@@ -40,6 +40,19 @@ public class StringBuilderExtensionsTest
     }
 
     [Theory]
+    [InlineData(2, 1, "/", "He/lo World!")]
+    [InlineData(6, 5, "You", "Hello You!")]
+    [InlineData(0, 5, "Welcome", "Welcome World!")]
+    [InlineData(4, 2, ", ", "Hell, World!")]
+    public void Replace(int start, int length, string newValue, string expected)
+    {
+        var sb = new StringBuilder("Hello!", 6);
+        sb.Insert(5, " World");
+        
+        Assert.Equal(expected, sb.Replace(start, length, newValue).ToString());
+    }
+
+    [Theory]
     [InlineData(6)] // Only enough for Hello! -> two segments
     [InlineData(12)] // Enough for the full value -> one segment
     public void AsReadOnlySequenceTest(int capacity)

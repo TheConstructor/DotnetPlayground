@@ -19,6 +19,12 @@ public static class StringBuilderExtensions
             StringComparison comparisonType = StringComparison.Ordinal) =>
             stringBuilder.AsReadOnlySequence().IndexOf(value, 0, comparisonType);
 
+        public StringBuilder Replace(int start, int length, ReadOnlySpan<char> newValue)
+        {
+            var oldValue = stringBuilder.AsReadOnlySequence().GetSpan(start, length);
+            return stringBuilder.Replace(oldValue, newValue, start, length);
+        }
+
         public ReadOnlySequence<char> AsReadOnlySequence()
         {
             var chunks = stringBuilder.GetChunks();
