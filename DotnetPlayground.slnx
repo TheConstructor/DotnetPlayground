@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="DotnetPlayground/DotnetPlayground.csproj" />
+  <Project Path="DotnetPlayground.Tests/DotnetPlayground.Tests.csproj" />
+</Solution>
