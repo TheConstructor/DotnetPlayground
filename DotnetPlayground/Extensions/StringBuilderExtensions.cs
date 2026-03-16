@@ -21,8 +21,16 @@ public static class StringBuilderExtensions
 
         public StringBuilder Replace(int start, int length, ReadOnlySpan<char> newValue)
         {
-            var oldValue = stringBuilder.AsReadOnlySequence().GetSpan(start, length);
-            return stringBuilder.Replace(oldValue, newValue, start, length);
+            if (stringBuilder.AsReadOnlySequence()
+                .TryGetSpanWithoutCopy(start, length, out var oldValue))
+            {
+                return stringBuilder.Replace(oldValue, newValue, start, length);
+            }
+            else
+            {
+                return stringBuilder.Remove(start, length)
+                    .Insert(start, newValue);
+            }
         }
 
         public ReadOnlySequence<char> AsReadOnlySequence()

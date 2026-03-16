@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Buffers;
+using System.Text;
 
 namespace DotnetPlayground.Extensions;
 
 public static class ReadOnlySequenceExtensions
 {
+    private const int MaxCharsPerRune = 2;
+
     extension(in ReadOnlySequence<char> sequence)
     {
         public int IndexOf(ReadOnlySpan<char> value,
@@ -18,13 +21,15 @@ public static class ReadOnlySequenceExtensions
                     : -1;
             }
 
-            return MultiSegmentIndexOf(sequence, value, offset, comparisonType);
+            return sequence.MultiSegmentIndexOf(value, offset, comparisonType);
         }
 
-        private int MultiSegmentIndexOf(ReadOnlySpan<char> value,
+        private int MultiSegmentIndexOf(
+            ReadOnlySpan<char> value,
             int offset,
             StringComparison comparisonType)
         {
+            int? valueRuneCount = null;
             IMemoryOwner<char>? buffer = null;
             try
             {
@@ -41,25 +46,53 @@ public static class ReadOnlySequenceExtensions
                         return -1;
                     }
 
-                    for (var i = Math.Max(0, currentSegment.Length - value.Length); i < currentSegment.Length - 1; i++)
+                    valueRuneCount ??= value.CountRunes();
+                    var remainder = currentSegment.Span.TakeRunesFromEnd(valueRuneCount.Value - 1, out var runesFound);
+                    if (remainder.IsEmpty)
                     {
-                        if (!value.StartsWith(currentSegment.Span[i..], comparisonType))
+                        goto nextSegment;
+                    }
+
+                    var lastRuneHalved = Rune.DecodeLastFromUtf16(remainder, out _, out var charsConsumed) == OperationStatus.NeedMoreData
+                        && charsConsumed == 1;
+                    if (lastRuneHalved)
+                    {
+                        remainder = remainder[..^1];
+                        runesFound--;
+                    }
+
+                    var valueStart = value.TakeRunesFromStart(runesFound, out var valueRunesFound);
+                    if (valueRunesFound != runesFound)
+                    {
+                        goto nextSegment;
+                    }
+
+                    while (!remainder.IsEmpty)
+                    {
+                        if (!remainder.Equals(valueStart, comparisonType))
                         {
+                            remainder = remainder.SkipFirstRune();
+                            valueStart = valueStart.SkipLastRune();
                             continue;
                         }
 
-                        var sequenceStartingAtI = sequence.Slice(startOfCurrentSegment).Slice(i);
-                        if (sequenceStartingAtI.Length < value.Length)
+                        var offsetFromSegmentStart = lastRuneHalved
+                            ? currentSegment.Span.Length - remainder.Length - 1
+                            : currentSegment.Span.Length - remainder.Length;
+                        var sequenceStartingAtI = sequence.Slice(startOfCurrentSegment)
+                            .Slice(offsetFromSegmentStart);
+                        if (sequenceStartingAtI.Length < valueRuneCount.Value)
                         {
-                            goto nextSegment;
+                            return -1;
                         }
 
-                        buffer ??= MemoryPool<char>.Shared.Rent(value.Length);
-                        var bufferSpan = buffer.Memory.Span[..value.Length];
-                        sequenceStartingAtI.Slice(0, value.Length).CopyTo(bufferSpan);
-                        if (bufferSpan.Equals(value, comparisonType))
+                        buffer ??= MemoryPool<char>.Shared.Rent(valueRuneCount.Value * MaxCharsPerRune);
+                        var lengthToCopy = Math.Min(valueRuneCount.Value * MaxCharsPerRune, checked((int)sequenceStartingAtI.Length));
+                        var bufferSpan = buffer.Memory.Span[..lengthToCopy];
+                        sequenceStartingAtI.Slice(0, lengthToCopy).CopyTo(bufferSpan);
+                        if (bufferSpan.TakeRunesFromStart(valueRuneCount.Value, out _).Equals(value, comparisonType))
                         {
-                            return checked((int) (sequence.GetOffset(startOfCurrentSegment) + i));
+                            return checked((int) sequence.GetOffset(startOfCurrentSegment) + offsetFromSegmentStart);
                         }
                     }
 
@@ -82,6 +115,21 @@ public static class ReadOnlySequenceExtensions
     
     extension<T>(in ReadOnlySequence<T> sequence)
     {
+        public bool TryGetSpanWithoutCopy(int start, int length, out ReadOnlySpan<T> span)
+        {
+            var subSequence = sequence.Slice(start, length);
+            if (subSequence.IsSingleSegment)
+            {
+                span = subSequence.FirstSpan;
+                return true;
+            }
+            else
+            {
+                span = ReadOnlySpan<T>.Empty;
+                return false;
+            }
+        }
+
         public ReadOnlySpan<T> GetSpan(int start, int length)
         {
             var subSequence = sequence.Slice(start, length);
