@@ -5,13 +5,17 @@ using System.Collections.Immutable;
 
 namespace DotnetPlayground;
 
-public class ConcurrentCollection<T>(ImmutableArray<T> items) : ICollection<T>, IReadOnlyCollection<T>
+public class ConcurrentCollection<T>(ImmutableArray<T> items) : ICollection<T>, ICollection, IReadOnlyCollection<T>
 {
     private ImmutableArray<T> _items = items;
 
     public int Count => _items.Length;
 
     bool ICollection<T>.IsReadOnly => false;
+
+    bool ICollection.IsSynchronized => false;
+
+    object ICollection.SyncRoot => this;
 
     public ConcurrentCollection() : this(ImmutableArray<T>.Empty)
     {
@@ -41,6 +45,11 @@ public class ConcurrentCollection<T>(ImmutableArray<T> items) : ICollection<T>, 
     public void CopyTo(T[] array, int arrayIndex)
     {
         _items.CopyTo(array, arrayIndex);
+    }
+
+    void ICollection.CopyTo(Array array, int index)
+    {
+        _items.RepresentAs<ICollection>().CopyTo(array, index);
     }
 
     public bool Remove(T item)

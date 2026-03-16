@@ -1,16 +1,21 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace DotnetPlayground;
 
-public class ConcurrentSet<T>(ImmutableHashSet<T> items) : ICollection<T>, IReadOnlyCollection<T>
+public class ConcurrentSet<T>(ImmutableHashSet<T> items) : ICollection<T>, ICollection, IReadOnlyCollection<T>
 {
     private ImmutableHashSet<T> _items = items;
 
     public int Count => _items.Count;
 
     bool ICollection<T>.IsReadOnly => false;
+
+    bool ICollection.IsSynchronized => false;
+
+    object ICollection.SyncRoot => this;
 
     public ConcurrentSet() : this(ImmutableHashSet<T>.Empty)
     {
@@ -33,7 +38,12 @@ public class ConcurrentSet<T>(ImmutableHashSet<T> items) : ICollection<T>, IRead
 
     public void CopyTo(T[] array, int arrayIndex)
     {
-        ((ICollection) _items).CopyTo(array, arrayIndex);
+        _items.RepresentAs<ICollection<T>>().CopyTo(array, arrayIndex);
+    }
+
+    void ICollection.CopyTo(Array array, int index)
+    {
+        _items.RepresentAs<ICollection>().CopyTo(array, index);
     }
 
     public bool Remove(T item)
