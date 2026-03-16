@@ -6,28 +6,42 @@ namespace DotnetPlayground.Extensions;
 
 public static class StringBuilderExtensions
 {
-    public static ReadOnlySequence<char> AsReadOnlySequence(this StringBuilder stringBuilder)
+    extension(StringBuilder stringBuilder)
     {
-        var chunks = stringBuilder.GetChunks();
+        public int IndexOf(
+            ReadOnlySpan<char> value,
+            int offset = 0,
+            StringComparison comparisonType = StringComparison.Ordinal) =>
+            stringBuilder.AsReadOnlySequence().IndexOf(value, offset, comparisonType);
 
-        if (!chunks.MoveNext())
+        public int IndexOf(
+            ReadOnlySpan<char> value,
+            StringComparison comparisonType = StringComparison.Ordinal) =>
+            stringBuilder.AsReadOnlySequence().IndexOf(value, 0, comparisonType);
+
+        public ReadOnlySequence<char> AsReadOnlySequence()
         {
-            return ReadOnlySequence<char>.Empty;
+            var chunks = stringBuilder.GetChunks();
+
+            if (!chunks.MoveNext())
+            {
+                return ReadOnlySequence<char>.Empty;
+            }
+
+            var runningIndex = 0L;
+            var firstSegment = new StringBuilderSegment(chunks.Current, runningIndex);
+            var lastSegment = firstSegment;
+
+            while (chunks.MoveNext())
+            {
+                var currentSegment = lastSegment;
+                runningIndex += currentSegment.Length;
+                lastSegment = new StringBuilderSegment(chunks.Current, runningIndex);
+                currentSegment.SetNext(lastSegment);
+            }
+
+            return new ReadOnlySequence<char>(firstSegment, 0, lastSegment, lastSegment.Length);
         }
-
-        var runningIndex = 0L;
-        var firstSegment = new StringBuilderSegment(chunks.Current, runningIndex);
-        var lastSegment = firstSegment;
-
-        while (chunks.MoveNext())
-        {
-            var currentSegment = lastSegment;
-            runningIndex += currentSegment.Length;
-            lastSegment = new StringBuilderSegment(chunks.Current, runningIndex);
-            currentSegment.SetNext(lastSegment);
-        }
-
-        return new ReadOnlySequence<char>(firstSegment, 0, lastSegment, lastSegment.Length);
     }
 
     private class StringBuilderSegment : ReadOnlySequenceSegment<char>

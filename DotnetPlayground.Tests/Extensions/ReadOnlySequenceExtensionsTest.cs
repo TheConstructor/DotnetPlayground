@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Text;
 using DotnetPlayground.Extensions;
 using Xunit;
 
 namespace DotnetPlayground.Tests.Extensions;
 
-public class StringBuilderExtensionsTest
+public class ReadOnlySequenceExtensionsTest
 {
     [Theory]
     [InlineData("", 0, StringComparison.Ordinal, 0)]
@@ -34,19 +34,9 @@ public class StringBuilderExtensionsTest
     [InlineData("ello World!!", 0, StringComparison.Ordinal, -1)]
     public void IndexOfTest(string needle, int offset, StringComparison stringComparison, int result)
     {
-        var sb = new StringBuilder("Hello World!");
-
-        Assert.Equal(result, sb.IndexOf(needle, offset, stringComparison));
-    }
-
-    [Theory]
-    [InlineData(6)] // Only enough for Hello! -> two segments
-    [InlineData(12)] // Enough for the full value -> one segment
-    public void AsReadOnlySequenceTest(int capacity)
-    {
-        var sb = new StringBuilder("Hello!", capacity);
+        var sb = new StringBuilder("Hello!", 6); // Only enough for Hello! -> two segments
         sb.Insert(5, " World");
-        
-        Assert.Equal("Hello World!", sb.AsReadOnlySequence().ToString());
+
+        Assert.Equal(result, sb.AsReadOnlySequence().IndexOf(needle, offset, stringComparison));
     }
 }
