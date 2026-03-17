@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Text;
 
 namespace DotnetPlayground.Extensions;
@@ -97,8 +96,8 @@ public static class ReadOnlySpanExtensions
 
         public bool IsLastRuneHalved()
         {
-            return Rune.DecodeLastFromUtf16(span, out _, out var charsConsumed) == OperationStatus.NeedMoreData
-                   && charsConsumed == 1;
+            return span.Length > 0
+                   && char.IsHighSurrogate(span[^1]);
         }
     }
 }

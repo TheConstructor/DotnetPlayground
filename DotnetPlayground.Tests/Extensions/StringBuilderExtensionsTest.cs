@@ -48,8 +48,27 @@ public class StringBuilderExtensionsTest
     {
         var sb = new StringBuilder("Hello!", 6);
         sb.Insert(5, " World");
-        
+
         Assert.Equal(expected, sb.Replace(start, length, newValue).ToString());
+    }
+
+    [Theory]
+    [InlineData(6)] // Only enough for Hello! -> two segments
+    [InlineData(12)] // Enough for the full value -> one segment
+    public void StartsWith(int capacity)
+    {
+        var sb = new StringBuilder("Hello!", capacity);
+        sb.Insert(5, " World");
+
+        Assert.True(sb.StartsWith("Hello"));
+        Assert.False(sb.StartsWith("hello"));
+        Assert.True(sb.StartsWith("Hello", StringComparison.OrdinalIgnoreCase));
+        Assert.True(sb.StartsWith("hello", StringComparison.OrdinalIgnoreCase));
+
+        Assert.True(sb.StartsWith("Hello World!"));
+        Assert.False(sb.StartsWith("hello world!"));
+        Assert.True(sb.StartsWith("Hello World!", StringComparison.OrdinalIgnoreCase));
+        Assert.True(sb.StartsWith("hello world!", StringComparison.OrdinalIgnoreCase));
     }
 
     [Theory]
@@ -59,7 +78,7 @@ public class StringBuilderExtensionsTest
     {
         var sb = new StringBuilder("Hello!", capacity);
         sb.Insert(5, " World");
-        
+
         Assert.Equal("Hello World!", sb.AsReadOnlySequence().ToString());
     }
 }

@@ -19,6 +19,11 @@ public static class StringBuilderExtensions
             StringComparison comparisonType = StringComparison.Ordinal) =>
             stringBuilder.AsReadOnlySequence().IndexOf(value, 0, comparisonType);
 
+        public bool StartsWith(
+            ReadOnlySpan<char> value,
+            StringComparison comparisonType = StringComparison.Ordinal) =>
+            stringBuilder.AsReadOnlySequence().StartsWith(value, comparisonType);
+
         public StringBuilder Replace(int start, int length, ReadOnlySpan<char> newValue)
         {
             if (stringBuilder.AsReadOnlySequence()
