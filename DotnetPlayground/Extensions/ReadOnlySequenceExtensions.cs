@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Diagnostics;
-using System.Text;
 
 namespace DotnetPlayground.Extensions;
 
@@ -51,17 +50,21 @@ public static class ReadOnlySequenceExtensions
 
                     // There is another segment, but there was no complete match inside the current
                     // => we need at least one Rune from the next segment to form a match.
-                    // We count the Runes in value and then start by looking at one less Rune from the current segment
+
+                    // It could be, that the current segment ends with the first half of a Rune and the remaining char is in the next segment
+                    var lastRuneHalved = currentSegment.Span.IsLastRuneHalved();
+
+                    // We count the Runes in value and then start by looking at one less full Rune from the current segment
                     // to see, if it could be the start of value
                     valueRuneCount ??= value.CountRunes();
-                    var remainder = currentSegment.Span.TakeRunesFromEnd(valueRuneCount.Value - 1, out var runesFound);
+                    var remainder = currentSegment.Span.TakeRunesFromEnd(
+                        lastRuneHalved
+                            ? valueRuneCount.Value
+                            : valueRuneCount.Value - 1,
+                        out var runesFound);
 
                     if (!remainder.IsEmpty)
                     {
-                        // It could be, that the current segment ends with the first half of a Rune and the remaining char is in the next segment
-                        var lastRuneHalved = Rune.DecodeLastFromUtf16(remainder, out _, out var charsConsumed)
-                                             == OperationStatus.NeedMoreData
-                                             && charsConsumed == 1;
                         if (lastRuneHalved)
                         {
                             remainder = remainder[..^1];
@@ -72,15 +75,19 @@ public static class ReadOnlySequenceExtensions
                         // We counted the Runes in value and runesFound should be less
                         Debug.Assert(valueRunesFound == runesFound);
 
-                        do
+                        while (true)
                         {
                             // Do the last Runes of this segment match the first Runes of value?
-                            if (!remainder.Equals(valueStart, comparisonType))
+                            while (!remainder.Equals(valueStart, comparisonType))
                             {
                                 // No -> retry with one Rune less
                                 remainder = remainder.SkipFirstRune();
                                 valueStart = valueStart.SkipLastRune();
-                                continue;
+                            }
+
+                            if (remainder.IsEmpty && !lastRuneHalved)
+                            {
+                                break;
                             }
 
                             // We already matched the start of value, let's see if we can find the rest.
@@ -113,8 +120,15 @@ public static class ReadOnlySequenceExtensions
                                                offsetFromSegmentStart);
                             }
 
-                            // We check only after the first iteration, to handle the lastRuneHalved-situation; in all other cases we already checked this anyway
-                        } while (!remainder.IsEmpty);
+                            if (remainder.IsEmpty)
+                            {
+                                break;
+                            }
+
+                            // Retry with one Rune less
+                            remainder = remainder.SkipFirstRune();
+                            valueStart = valueStart.SkipLastRune();
+                        }
                     }
 
                     // startOfNextSegment will be updated by sequence.TryGet(..) with the start of the segment after, so let's store the previous value
